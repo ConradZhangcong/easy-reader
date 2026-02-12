@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Microsoft YaHei', Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+.reader-container {
+  min-height: calc(100vh - 4rem);
+}
+
+.text-content {
+  line-height: 1.8;
+}
+
+.chapter-item {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chapter-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.chapter-item.active {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-left: 3px solid #3b82f6;
+}
+
+.audio-control button {
+  transition: all 0.2s ease;
+}
+
+.audio-control button:hover {
+  transform: translateY(-2px);
+}
+
+.audio-control button:active {
+  transform: translateY(0);
+}
