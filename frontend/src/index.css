@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
   font-family: 'Microsoft YaHei', Arial, sans-serif;
@@ -17,6 +15,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  color: #0f172a;
 }
 
 .reader-container {
@@ -24,21 +23,33 @@ body {
 }
 
 .text-content {
-  line-height: 1.8;
+  line-height: 1.72;
+  color: #334155;
+  font-size: 0.95rem;
+}
+
+.text-content p {
+  margin: 0 0 0.75rem;
+  text-indent: 2em;
+  letter-spacing: 0.01em;
 }
 
 .chapter-item {
   cursor: pointer;
   transition: all 0.2s ease;
+  border-left: 3px solid transparent;
 }
 
 .chapter-item:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba(59, 130, 246, 0.08);
+  transform: translateX(2px);
 }
 
 .chapter-item.active {
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: rgba(59, 130, 246, 0.14);
   border-left: 3px solid #3b82f6;
+  color: #1d4ed8;
+  font-weight: 600;
 }
 
 .audio-control button {
