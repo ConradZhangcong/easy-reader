@@ -1,128 +1,196 @@
 # Easy Reader - 小说阅读器
 
-一个基于 React 和 Flask 的小说阅读器应用，支持文本阅读、章节导航、书签管理和语音朗读功能。
+Easy Reader 是一个基于 React + Flask 的本地小说阅读应用，支持章节导航、书签管理和流式语音朗读。  
+当前版本重点优化了长文本 TTS 的首播速度与总耗时表现。
 
 ## 功能特性
 
-- 📁 **文件上传**：支持上传 .txt 格式的小说文件
-- 📑 **章节导航**：自动检测章节，支持快速跳转
-- 🔖 **书签管理**：添加、查看和跳转到书签
-- 🎧 **语音朗读**：支持文字转语音，可调整语速和音量
-- 📱 **响应式设计**：适配不同屏幕尺寸
-- 🎨 **现代化界面**：使用 Tailwind CSS 构建美观的用户界面
+- 📁 **TXT 上传与自动解码**：上传 `.txt` 后自动检测编码并转为 UTF-8
+- 📑 **章节导航**：自动识别章节并快速跳转
+- 🔖 **书签管理**：添加、查看、跳转、清空书签
+- 🎧 **流式语音朗读**：后端分段生成，前端收到首段即可播放
+- ⚡ **音频缓存**：按文本+语音参数缓存 MP3，重复朗读可复用
+- 📱 **响应式界面**：支持桌面端阅读与播放操作
 
 ## 技术栈
 
 ### 前端
-- React 19.2.0
-- Tailwind CSS 4.0.0
-- JavaScript
-- HTML5 / CSS3
+
+- React
+- Vite
+- Tailwind CSS
+- 原生 `Audio` + 流式解析 SSE
 
 ### 后端
+
 - Python 3.11
-- Flask 2.0.1
-- edge-tts 7.2.7
-- Flask-CORS 3.0.10
+- Flask
+- Flask-CORS
+- edge-tts
 
 ## 快速开始
 
-### 1. 安装依赖
+### 1) 安装依赖
 
-#### 前端依赖
+前端：
+
 ```bash
 cd frontend
 npm install
 ```
 
-#### 后端依赖
+后端：
+
 ```bash
 cd backend
 python3 -m pip install -r requirements.txt
 ```
 
-### 2. 启动服务
+### 2) 启动服务
 
-#### 启动前端开发服务器
+
+#### 一键启动
+
 ```bash
-cd frontend
-npm run dev
+bash start.sh
 ```
-前端应用将运行在 http://localhost:5173
 
-#### 启动后端 API 服务
+#### 前后端分开启动
+
+启动后端（默认端口 `5001`）：
+
 ```bash
 cd backend
 python3 app.py
 ```
-后端服务将运行在 http://localhost:5001
 
-### 3. 使用说明
+启动前端（默认端口 `5173`）：
 
-1. **上传小说**：点击 "选择文件" 按钮上传 .txt 格式的小说文件
-2. **阅读小说**：在右侧阅读区查看小说内容
-3. **章节导航**：在左侧章节列表中点击章节标题快速跳转
-4. **添加书签**：点击 "添加书签" 按钮保存当前章节位置
-5. **语音朗读**：点击 "开始朗读" 按钮听取当前章节的语音朗读
-6. **控制播放**：使用 "播放/暂停" 和 "停止" 按钮控制音频播放
+```bash
+cd frontend
+npm run dev
+```
+
+### 3) 使用流程
+
+1. 上传小说 `.txt` 文件
+2. 从左侧章节列表选择章节
+3. 点击“开始朗读”触发流式 TTS
+4. 使用“播放/暂停/停止”控制播放
+5. 按需添加书签用于回跳
 
 ## API 接口
 
-### 文字转语音
-- **URL**: `/api/tts`
-- **方法**: `POST`
-- **请求体**:
-  ```json
-  {
-    "text": "要转换的文本",
-    "speed": 语速（默认 0）,
-    "volume": 音量（默认 0）,
-    "voice": 语音 ID（默认 zh-CN-YunxiNeural）
-  }
-  ```
-- **响应**: MP3 音频文件
+### `POST /api/upload`
 
-### 获取语音列表
-- **URL**: `/api/voices`
-- **方法**: `GET`
-- **响应**: 可用语音列表
+上传并解析文本文件。
 
-## 项目结构
+请求：`multipart/form-data`，字段名 `file`  
+响应：
 
+```json
+{
+  "success": true,
+  "content": "解析后的文本内容"
+}
 ```
+
+### `POST /api/tts`
+
+同步整段 TTS（返回单个 MP3 文件）。
+
+请求体：
+
+```json
+{
+  "text": "要转换的文本",
+  "speed": 0,
+  "volume": 0,
+  "voice": "zh-CN-YunxiNeural"
+}
+```
+
+### `POST /api/tts/stream`
+
+流式 TTS（SSE）。后端按分段生成并逐段推送。
+
+请求体：
+
+```json
+{
+  "text": "长文本",
+  "speed": 0,
+  "volume": 0,
+  "voice": "zh-CN-YunxiNeural",
+  "segment_size": 450,
+  "first_segment_size": 220
+}
+```
+
+参数说明：
+
+- `segment_size`：普通分段最大长度，建议 `320~450`
+- `first_segment_size`：首段长度，建议 `160~220`，越小首播越快
+
+SSE 事件：
+
+- `event: segment`：单段音频（`audio_base64`）
+- `event: progress`：进度信息（`current/total/percentage`）
+- `event: complete`：生成完成
+- `event: error`：生成失败
+
+### `GET /api/voices`
+
+获取可用语音列表。
+
+## 性能与调参建议
+
+当前瓶颈主要在 edge-tts 网络生成，不在编码与前端解码。建议：
+
+- 首播优化：减小 `first_segment_size`（如 `180`）
+- 总耗时优化：减小 `segment_size`（如 `360`）并保持后端并发预生成
+- 命中缓存：同一段文本使用相同 `voice/speed/volume` 可直接复用
+
+## 日志排查
+
+后端日志会输出以下关键字段：
+
+- `request received`：请求参数总览
+- `segment_preview`：前几段原文预览（便于检查切分）
+- `cache=hit/miss`：缓存命中情况
+- `tts_elapsed_ms`：单段 TTS 生成耗时
+- `wait_elapsed_ms`：顺序返回阶段等待耗时
+- `total_elapsed_ms`：请求总耗时
+
+可据此快速判断是“切分问题、缓存问题还是 TTS 生成慢”。
+
+## 目录结构
+
+```text
 easy-reader/
-├── frontend/          # 前端代码
-│   ├── public/        # 静态资源
-│   ├── src/           # 前端源代码
-│   │   ├── assets/    # 图片等资源
-│   │   ├── App.jsx    # 主应用组件
-│   │   ├── main.jsx   # 应用入口
-│   │   └── index.css  # 全局样式
-│   ├── index.html     # HTML 模板
-│   ├── package.json   # 前端配置
-│   ├── vite.config.js # Vite 配置
-│   └── ...            # 其他前端配置文件
-├── backend/           # 后端代码
-│   ├── app.py         # 后端 Flask 应用
-│   └── requirements.txt # 后端依赖
-└── README.md          # 项目文档
+├── frontend/
+│   └── src/
+│       └── App.jsx
+├── backend/
+│   ├── app.py
+│   ├── requirements.txt
+│   └── audio_cache/
+│       └── .gitkeep
+├── .gitignore
+└── README.md
 ```
+
+## 关于 `audio_cache`
+
+- 运行时生成的 MP3 缓存位于 `backend/audio_cache/`
+- `.gitignore` 已忽略缓存文件，仅保留 `backend/audio_cache/.gitkeep`
 
 ## 注意事项
 
-1. 请确保同时启动前端和后端服务
-2. 语音朗读功能需要网络连接，因为使用了 edge-tts 服务
-3. 对于大型小说文件，章节检测可能需要一些时间
-4. 目前仅支持 .txt 格式的小说文件
-
-## 未来计划
-
-- [ ] 支持更多文件格式（如 EPUB、PDF 等）
-- [ ] 添加深色模式
-- [ ] 实现阅读进度自动保存
-- [ ] 支持云同步功能
-- [ ] 添加更多语音选项
+- 请确保前后端服务同时启动
+- TTS 功能依赖网络（edge-tts）
+- 当前主要支持 `.txt` 文本阅读
 
 ## 许可证
 
-MIT License
+MIT
